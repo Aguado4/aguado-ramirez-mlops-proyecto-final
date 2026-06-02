@@ -1,0 +1,75 @@
+name: CI/CD prod
+
+# Se ejecuta en cada push a la rama prod
+on:
+  push:
+    branches: [prod]
+
+env:
+  ENVIRONMENT: prod
+  GCS_BUCKET: ${{ vars.GCS_BUCKET }}
+  MODEL_BLOB: models/iris.onnx
+  TEST_DATA_BLOB: data/iris_test.csv
+  ACCURACY_THRESHOLD: "0.85"
+  GCP_PROJECT: ${{ vars.GCP_PROJECT }}
+  GCP_REGION: ${{ vars.GCP_REGION }}
+  SERVICE_NAME: iris-onnx-prod
+  IMAGE: ${{ vars.GCP_REGION }}-docker.pkg.dev/${{ vars.GCP_PROJECT }}/mlops/iris-onnx
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Instalar dependencias
+        run: pip install -r requirements.txt
+
+      - name: Autenticar en GCP
+        uses: google-github-actions/auth@v2
+        with:
+          credentials_json: ${{ secrets.GCP_SA_KEY }}
+
+      - name: Descargar modelo y datos de prueba desde el bucket
+        run: python scripts/download_test_data.py
+
+      - name: Ejecutar pruebas unitarias
+        run: pytest -v -s tests/
+
+  build-promote:
+    needs: test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Autenticar en GCP
+        uses: google-github-actions/auth@v2
+        with:
+          credentials_json: ${{ secrets.GCP_SA_KEY }}
+
+      - uses: google-github-actions/setup-gcloud@v2
+
+      - name: Configurar Docker para Artifact Registry
+        run: gcloud auth configure-docker ${{ env.GCP_REGION }}-docker.pkg.dev --quiet
+
+      - name: Build y push de la imagen
+        run: |
+          docker build -t ${{ env.IMAGE }}:${{ github.sha }} -t ${{ env.IMAGE }}:prod .
+          docker push ${{ env.IMAGE }}:${{ github.sha }}
+          docker push ${{ env.IMAGE }}:prod
+
+      - name: Deploy a Cloud Run (endpoint prod)
+        run: |
+          gcloud run deploy ${{ env.SERVICE_NAME }} \
+            --image ${{ env.IMAGE }}:${{ github.sha }} \
+            --region ${{ env.GCP_REGION }} \
+            --platform managed \
+            --allow-unauthenticated \
+            --set-env-vars ENVIRONMENT=prod,GCS_BUCKET=${{ env.GCS_BUCKET }},MODEL_BLOB=${{ env.MODEL_BLOB }}
+
+      - name: Mostrar URL del endpoint prod
+        run: gcloud run services describe ${{ env.SERVICE_NAME }} --region ${{ env.GCP_REGION }} --format='value(status.url)'

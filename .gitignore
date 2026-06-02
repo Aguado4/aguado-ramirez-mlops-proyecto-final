@@ -1,0 +1,23 @@
+# Modelo ONNX — NO debe vivir en el repo (se descarga del bucket en CI/CD)
+*.onnx
+
+# Datos de prueba — se descargan del bucket en la etapa de test
+data/
+*.csv
+
+# Credenciales cloud
+*.json
+!**/package.json
+.env
+sa-key.json
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.pytest_cache/
+*.egg-info/
+
+# Logs locales de predicciones
+predicciones_*.txt
