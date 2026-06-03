@@ -5,6 +5,10 @@ on:
   push:
     branches: [dev]
 
+permissions:
+  contents: read
+  id-token: write   # necesario para Workload Identity Federation (keyless)
+
 env:
   ENVIRONMENT: dev
   GCS_BUCKET: ${{ vars.GCS_BUCKET }}
@@ -29,10 +33,12 @@ jobs:
       - name: Instalar dependencias
         run: pip install -r requirements.txt
 
-      - name: Autenticar en GCP
+      - name: Autenticar en GCP (Workload Identity Federation)
         uses: google-github-actions/auth@v2
         with:
-          credentials_json: ${{ secrets.GCP_SA_KEY }}
+          project_id: ${{ vars.GCP_PROJECT }}
+          workload_identity_provider: ${{ vars.WIF_PROVIDER }}
+          service_account: ${{ vars.DEPLOYER_SA }}
 
       - name: Descargar modelo y datos de prueba desde el bucket
         run: python scripts/download_test_data.py
@@ -46,10 +52,12 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Autenticar en GCP
+      - name: Autenticar en GCP (Workload Identity Federation)
         uses: google-github-actions/auth@v2
         with:
-          credentials_json: ${{ secrets.GCP_SA_KEY }}
+          project_id: ${{ vars.GCP_PROJECT }}
+          workload_identity_provider: ${{ vars.WIF_PROVIDER }}
+          service_account: ${{ vars.DEPLOYER_SA }}
 
       - uses: google-github-actions/setup-gcloud@v2
 
