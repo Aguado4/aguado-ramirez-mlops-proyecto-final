@@ -118,13 +118,37 @@ curl -X POST localhost:8080/predict -H "Content-Type: application/json" \
 
 ---
 
+## Endpoints en producción
+
+| Entorno | URL |
+|---|---|
+| **dev** | https://iris-onnx-dev-4iuyx3z72q-uc.a.run.app |
+| **prod** | https://iris-onnx-prod-4iuyx3z72q-uc.a.run.app |
+
+Ejemplo de uso:
+```bash
+curl -X POST https://iris-onnx-dev-4iuyx3z72q-uc.a.run.app/predict \
+     -H "Content-Type: application/json" -d '{"features":[5.1,3.5,1.4,0.2]}'
+```
+
+## Infraestructura GCP
+
+| Recurso | Valor |
+|---|---|
+| Proyecto | `project-db6add9e-2647-4d19-892` (región `us-central1`) |
+| Bucket | `gs://project-db6add9e-2647-4d19-892-mlops-artifacts` (modelo, datos, logs) |
+| Artifact Registry | `us-central1-docker.pkg.dev/.../mlops/iris-onnx` |
+| Auth CI/CD | **Workload Identity Federation** (keyless) — la org bloquea SA keys |
+| Protección de costos | **Kill-switch**: budget → Pub/Sub → Cloud Function que desvincula billing |
+
 ## Estado actual
 
 - [x] Estructura del repo, ramas `dev`/`prod`
 - [x] Modelo ONNX (script de generación) + app FastAPI + logging
 - [x] Pruebas unitarias + scripts de descarga
 - [x] Dockerfile + workflows de CI/CD
-- [ ] Bucket GCS creado y artefactos subidos
-- [ ] Service Account + Secrets en GitHub
-- [ ] Primer deploy real a Cloud Run (dev/prod)
+- [x] Bucket GCS creado y artefactos subidos
+- [x] Auth keyless con Workload Identity Federation (sin SA keys, por política de org)
+- [x] Deploy real a Cloud Run dev y prod (ambos endpoints vivos)
+- [x] Kill-switch de facturación montado y verificado
 - [ ] Demo de sustentación (10 min)
