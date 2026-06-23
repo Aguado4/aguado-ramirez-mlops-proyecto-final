@@ -50,7 +50,7 @@ def health():
     """Usado por el smoke test del pipeline CD."""
     try:
         model.get_session()
-        return {"status": "healthy"}
+        return {"status": "test"}
     except Exception as exc:
         raise HTTPException(status_code=503, detail=f"modelo no disponible: {exc}")
 
