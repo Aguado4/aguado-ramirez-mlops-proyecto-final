@@ -41,7 +41,7 @@ def test_modelo_responde_con_entrada_definida():
 
 def test_accuracy_supera_umbral():
     """Prueba 2: el accuracy sobre el set de prueba no cae por debajo del umbral."""
-    threshold = float(os.getenv("ACCURACY_THRESHOLD", "0.85"))
+    threshold = float(os.getenv("ACCURACY_THRESHOLD", "0.99")) #aqui
     X, y_true = _load_test_data()
     y_pred = model.predict_batch(X)
     accuracy = float(np.mean(y_pred == y_true))
